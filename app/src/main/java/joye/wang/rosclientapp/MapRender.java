@@ -9,8 +9,14 @@ import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 
 import com.alibaba.fastjson.JSONObject;
+import com.blankj.utilcode.constant.PermissionConstants;
+import com.blankj.utilcode.util.LogUtils;
+import com.blankj.utilcode.util.PathUtils;
+import com.blankj.utilcode.util.PermissionUtils;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.FloatBuffer;
@@ -26,15 +32,17 @@ public class MapRender implements GLSurfaceView.Renderer {
     private final FloatBuffer surfaceVertices;
     // 纹理坐标
     private final FloatBuffer textureVertices;
+    private Context context;
 
     private Bitmap bitmap;
 
     public MapRender(Context context) {
+        this.context = context;
         surfaceVertices = BufferUtil.allocateFloatBuffer(new float[] {
-                0.0f, 0.0f, 0.0f, // Bottom left
-                1.0f, 0.0f, 0.0f, // Bottom right
-                0.0f, 1.0f, 0.0f, // Top left
-                1.0f, 1.0f, 0.0f, // Top right
+                0.0f, 0.0f,  // Bottom left
+                1.0f, 0.0f,  // Bottom right
+                0.0f, 1.0f,  // Top left
+                1.0f, 1.0f,  // Top right
         });
         textureVertices = BufferUtil.allocateFloatBuffer(new float[] {
                 0.0f, 0.0f, // Bottom left
@@ -46,7 +54,53 @@ public class MapRender implements GLSurfaceView.Renderer {
         String mapData = readData(context, "map.json");
         // convert json to java object
         OccupancyGrid map = JSONObject.parseObject(mapData, OccupancyGrid.class);
+
+        PermissionUtils.permission(PermissionConstants.STORAGE).request();
         initMap(map);
+    }
+
+    /**
+     * 保存bitmap到本地
+     *
+     * @param bitmap Bitmap
+     */
+    public void saveBitmap(Bitmap bitmap) {
+        String savePath;
+        File filePic;
+        // savePath = Environment.getExternalStorageState() + "/1.png";
+        savePath = "/sdcard/1.png";
+        try {
+            filePic = new File(savePath);
+            if (!filePic.exists()) {
+                filePic.getParentFile().mkdirs();
+                filePic.createNewFile();
+            }
+            FileOutputStream fos = new FileOutputStream(filePic);
+            boolean res  = bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            LogUtils.e(res);
+            fos.flush();
+            fos.close();
+        } catch (IOException e) {
+            return;
+        }
+    }
+
+    public void saveBitmap(String path, Bitmap bitmap) {
+        String savePath = path;
+        File filePic;
+        try {
+            filePic = new File(savePath);
+            if (!filePic.exists()) {
+                filePic.getParentFile().mkdirs();
+                filePic.createNewFile();
+            }
+            FileOutputStream fos = new FileOutputStream(filePic);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.flush();
+            fos.close();
+        } catch (IOException e) {
+            return;
+        }
     }
 
     public static final int[] gradient = getGradient();
@@ -100,6 +154,10 @@ public class MapRender implements GLSurfaceView.Renderer {
             newMap.setPixels(pixels, 0, width, 0, y, width, 1);
         }
         bitmap = newMap;
+        saveBitmap(newMap);
+        String path = PathUtils.getExternalPicturesPath() + "/2.png";
+        saveBitmap(path, bitmap);
+        saveBitmap(PathUtils.getExternalAppPicturesPath()+"/3.png", bitmap);
     }
 
     /**
@@ -153,7 +211,7 @@ public class MapRender implements GLSurfaceView.Renderer {
         // vertex
         gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
         gl.glEnableClientState(GL10.GL_TEXTURE_COORD_ARRAY);
-        gl.glVertexPointer(3, GL10.GL_FLOAT, 0, surfaceVertices);
+        gl.glVertexPointer(2, GL10.GL_FLOAT, 0, surfaceVertices);
         gl.glTexCoordPointer(2, GL10.GL_FLOAT, 0, textureVertices);
 
         GLES31.glDrawArrays(GLES31.GL_TRIANGLE_STRIP, 0, 4);
