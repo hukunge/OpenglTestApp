@@ -15,10 +15,15 @@ import javax.microedition.khronos.opengles.GL10;
 
 public class ColorTriangleRender implements GLSurfaceView.Renderer {
 
-    private float[] vertexPoints = new float[]{
+    /*private float[] vertexPoints = new float[]{
             0.0f, 0.5f, 0.0f,
             -0.5f, -0.5f, 0.0f,
             0.5f, -0.5f, 0.0f
+    };*/
+    private float[] vertexPoints = new float[]{
+            0.0f, 50f, 0.0f,
+            -50f, -50f, 0.0f,
+            50f, -50f, 0.0f
     };
 
     private float[] mColor = new float[]{
@@ -54,7 +59,8 @@ public class ColorTriangleRender implements GLSurfaceView.Renderer {
             @Override
             public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
                 // translate(distanceX, distanceY);
-                x = e1.getX() - e2.getX(); y = e1.getY() - e2.getY();
+                x = e1.getX() - e2.getX();
+                y = e1.getY() - e2.getY();
                 return super.onScroll(e1, e2, distanceX, distanceY);
             }
         });
@@ -75,6 +81,7 @@ public class ColorTriangleRender implements GLSurfaceView.Renderer {
 
     private float x, y;
     private float scale;
+
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // 设置白色为清屏
@@ -87,14 +94,17 @@ public class ColorTriangleRender implements GLSurfaceView.Renderer {
         // 设置OpenGL场景的大小,(0,0)表示窗口内部视口的左下角，(w,h)指定了视口的大小
         gl.glViewport(0, 0, width, height);
         // 设置投影矩阵
-        // gl.glMatrixMode(GL10.GL_PROJECTION);
-        // 重置投影矩阵
-        // gl.glLoadIdentity();
-        // 设置视口的大小
-        gl.glFrustumf(-1, 1, -1, 1, 1, 2);
-        //以下两句声明，以后所有的变换都是针对模型(即我们绘制的图形)
-        gl.glMatrixMode(GL10.GL_MODELVIEW);
+        gl.glMatrixMode(GL10.GL_PROJECTION);
         gl.glLoadIdentity();
+        gl.glOrthof(-width / 2f, width / 2f, -height / 2f, height / 2f, -10000f, 10000f);
+        // 设置视口的大小
+        //gl.glFrustumf(-1, 1, -1, 1, 1, 2);
+        //以下两句声明，以后所有的变换都是针对模型(即我们绘制的图形)
+        gl.glMatrixMode(5888);
+        //gl.glEnable(3042);
+        //gl.glBlendFunc(770, 771);
+        //gl.glDisable(2929);
+        //gl.glLoadIdentity();
     }
 
     @Override
@@ -110,7 +120,7 @@ public class ColorTriangleRender implements GLSurfaceView.Renderer {
             x = 10f;
         if (y > 10)
             y = 10f;
-        gl.glTranslatef(x/100f, y/100f, -1.5f);
+        gl.glTranslatef(x / 100f, y / 100f, -1.5f);
         if (scale > 10) scale = 10;
         if (scale == 0) scale = 1;
         gl.glScalef(scale, scale, 0);

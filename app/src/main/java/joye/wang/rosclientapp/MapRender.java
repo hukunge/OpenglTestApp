@@ -7,16 +7,13 @@ import android.graphics.Color;
 import android.opengl.GLES31;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 
 import com.alibaba.fastjson.JSONObject;
-import com.blankj.utilcode.constant.PermissionConstants;
-import com.blankj.utilcode.util.LogUtils;
-import com.blankj.utilcode.util.PathUtils;
-import com.blankj.utilcode.util.PermissionUtils;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.FloatBuffer;
@@ -36,71 +33,66 @@ public class MapRender implements GLSurfaceView.Renderer {
 
     private Bitmap bitmap;
 
+
+    private float x, y;
+    private float scale;
+
+    private GestureDetector translateGestureDetector;
+    private ScaleGestureDetector scaleGestureDetector;
+
     public MapRender(Context context) {
         this.context = context;
-        surfaceVertices = BufferUtil.allocateFloatBuffer(new float[] {
+        surfaceVertices = BufferUtil.allocateFloatBuffer(new float[]{
                 0.0f, 0.0f,  // Bottom left
-                1.0f, 0.0f,  // Bottom right
+                1, 0.0f,  // Bottom right
                 0.0f, 1.0f,  // Top left
                 1.0f, 1.0f,  // Top right
         });
-        textureVertices = BufferUtil.allocateFloatBuffer(new float[] {
+        textureVertices = BufferUtil.allocateFloatBuffer(new float[]{
                 0.0f, 0.0f, // Bottom left
-                1.0f, 0.0f, // Bottom right
-                0.0f, 1.0f, // Top left
-                1.0f, 1.0f, // Top right
+                1000.0f, 0.0f, // Bottom right
+                0.0f, 1000.0f, // Top left
+                1000.0f, 1000.0f, // Top right
+        });
+        translateGestureDetector = new GestureDetector(context, new GestureDetector.SimpleOnGestureListener() {
+            // 必须返回true，否则所有后续操作都会被忽略
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                // translate(distanceX, distanceY);
+                x = e1.getX() - e2.getX();
+                y = e1.getY() - e2.getY();
+                return super.onScroll(e1, e2, distanceX, distanceY);
+            }
+        });
+        scaleGestureDetector = new ScaleGestureDetector(context, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                scale = detector.getScaleFactor();
+                return super.onScale(detector);
+            }
         });
         // read json data from file
         String mapData = readData(context, "map.json");
         // convert json to java object
         OccupancyGrid map = JSONObject.parseObject(mapData, OccupancyGrid.class);
-
-        PermissionUtils.permission(PermissionConstants.STORAGE).request();
         initMap(map);
     }
 
-    /**
-     * 保存bitmap到本地
-     *
-     * @param bitmap Bitmap
-     */
-    public void saveBitmap(Bitmap bitmap) {
-        String savePath;
-        File filePic;
-        // savePath = Environment.getExternalStorageState() + "/1.png";
-        savePath = "/sdcard/1.png";
-        try {
-            filePic = new File(savePath);
-            if (!filePic.exists()) {
-                filePic.getParentFile().mkdirs();
-                filePic.createNewFile();
-            }
-            FileOutputStream fos = new FileOutputStream(filePic);
-            boolean res  = bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            LogUtils.e(res);
-            fos.flush();
-            fos.close();
-        } catch (IOException e) {
-            return;
-        }
-    }
 
-    public void saveBitmap(String path, Bitmap bitmap) {
-        String savePath = path;
-        File filePic;
-        try {
-            filePic = new File(savePath);
-            if (!filePic.exists()) {
-                filePic.getParentFile().mkdirs();
-                filePic.createNewFile();
-            }
-            FileOutputStream fos = new FileOutputStream(filePic);
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-            fos.flush();
-            fos.close();
-        } catch (IOException e) {
-            return;
-        }
+    public boolean onTouchEvent(MotionEvent event) {
+        translateGestureDetector.onTouchEvent(event);
+        scaleGestureDetector.onTouchEvent(event);
+        return true;
     }
 
     public static final int[] gradient = getGradient();
@@ -154,10 +146,6 @@ public class MapRender implements GLSurfaceView.Renderer {
             newMap.setPixels(pixels, 0, width, 0, y, width, 1);
         }
         bitmap = newMap;
-        saveBitmap(newMap);
-        String path = PathUtils.getExternalPicturesPath() + "/2.png";
-        saveBitmap(path, bitmap);
-        saveBitmap(PathUtils.getExternalAppPicturesPath()+"/3.png", bitmap);
     }
 
     /**
@@ -187,10 +175,16 @@ public class MapRender implements GLSurfaceView.Renderer {
     @Override
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         gl.glViewport(0, 0, width, height);
+        gl.glMatrixMode(GL10.GL_PROJECTION);
+        gl.glLoadIdentity();
+        gl.glOrthof(-width / 2f, width / 2f, -height / 2f, height / 2f, -10000f, 10000f);
     }
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        gl.glTranslatef(x, y, -1.5f);
+        if (scale == 0) scale = 1;
+        gl.glScalef(scale , scale, 0);
         // 开启纹理
         GLES31.glEnable(GLES31.GL_TEXTURE_2D);
         final int[] textureIds = new int[1];

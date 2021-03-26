@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 public class MainActivity extends AppCompatActivity {
 
     private ColorTriangleRender render;
+    private MapRender mapRender;
     private GLSurfaceView surfaceView;
 
     @Override
@@ -16,13 +17,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         surfaceView = new GLSurfaceView(this);
         render = new ColorTriangleRender(this);
-        surfaceView.setRenderer(render);
+        mapRender = new MapRender(this);
+        surfaceView.setRenderer(mapRender);
         setContentView(surfaceView);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (render.onTouchEvent(event)) {
+        if (mapRender.onTouchEvent(event)) {
             surfaceView.requestRender();
             return true;
         }
